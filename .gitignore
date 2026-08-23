@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Model weights & checkpoints (download via scripts/download_models.sh)
+checkpoints/
+models/*.tflite
+*.ckpt
+*.h5
+*.pb
+
+# Audio / transcription outputs
+*.wav
+*.mp3
+*.flac
+*.mid
+*.midi
+*_transcription/
+output/
+
+# Data
+data/
+raw/
+
+# Env / secrets
+.env
+.env.*
+
+# OS
+.DS_Store

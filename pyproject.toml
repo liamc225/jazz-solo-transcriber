@@ -1,0 +1,39 @@
+[project]
+name = "jazz-solo-transcriber"
+version = "0.1.0"
+description = "Full-stack AI pipeline for transcribing jazz solos — inference + fine-tuning"
+authors = [{ name = "Liam Clarke" }]
+requires-python = ">=3.10"
+dependencies = [
+    "demucs>=4.0.0",
+    "basic-pitch>=0.4.0",
+    "madmom>=0.16.1",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "librosa>=0.10.0",
+    "soundfile>=0.12.0",
+    "pretty-midi>=0.2.10",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "music21>=8.0.0",
+    "click>=8.0.0",
+    "tqdm>=4.64.0",
+    "mir-eval>=0.7.0",
+    "matplotlib>=3.7.0",
+    "pyyaml>=6.0",
+    "einops>=0.6.0",
+]
+
+[project.scripts]
+jazz-transcribe = "jazz_solo.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["jazz_solo*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
