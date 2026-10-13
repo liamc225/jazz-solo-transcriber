@@ -1,5 +1,7 @@
 # 🎷 Jazz Solo Transcriber
 
+> **Agents / new contributors:** start with [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
+
 **AI-powered jazz solo transcription pipeline.**  
 Transform raw jazz recordings into quantized MIDI and MusicXML scores.
 
