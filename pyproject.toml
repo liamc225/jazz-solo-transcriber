@@ -2,7 +2,7 @@
 name = "jazz-solo-transcriber"
 version = "0.1.0"
 description = "Full-stack AI pipeline for transcribing jazz solos — inference + fine-tuning"
-authors = [{ name = "Liam Clarke" }]
+authors = [{ name = "Jazz Solo Transcriber" }]
 requires-python = ">=3.10"
 dependencies = [
     "demucs>=4.0.0",

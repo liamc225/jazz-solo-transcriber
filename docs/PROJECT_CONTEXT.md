@@ -1,6 +1,6 @@
 # Jazz Solo Transcriber: project context (agent handoff)
 
-_Last updated: Oct 13, 2026. **This repository is public.**_
+_Last updated: Oct 20, 2026. **This repository is public.**_
 
 ## What it is and who it's for
 A Python pipeline that turns jazz recordings into quantized MIDI and MusicXML transcriptions of the solo. It's for jazz musicians and students who transcribe solos, and for anyone experimenting with music-transcription models.
@@ -17,7 +17,7 @@ Output is MIDI plus MusicXML (music21). There's also a fine-tuning and eval harn
 None. It's a local CLI and library. Model weights come from `scripts/download_models.sh` and `scripts/download_mt3_checkpoint.sh`. Training needs a GPU (`scripts/train.sh`). There are no CI workflows.
 
 ## Live URLs
-The GitHub repo only: github.com/liamc225/jazz-solo-transcriber (public).
+This public GitHub repository. There is no separate site.
 
 ## Status
 There's a single initial commit (Aug 23, 2026). There are no open PRs or issues and no recorded benchmark results.
@@ -28,7 +28,7 @@ There's a single initial commit (Aug 23, 2026). There are no open PRs or issues 
 3. Try Weimar fine-tuning on a cloud GPU and compare it against stock Basic Pitch.
 
 ## Standing rules
-- No personal name or face on anything public. This repo is public, so commits, docs, and package metadata should use the `liamc225` handle or a brand. **Note:** `pyproject.toml` currently lists a personal author name. Ask Liam before changing it.
+- No personal name or face on anything public. This repo is public, so commits, docs, and package metadata should use the project brand, Jazz Solo Transcriber.
 - Don't commit model weights, datasets, or copyrighted audio.
 
 ## Where secrets live
