@@ -49,7 +49,7 @@ class QuantizerConfig:
     max_bpm: float = 400.0
     """Maximum plausible tempo in BPM."""
     swing_ratio: float = 0.0
-    """Swing factor (0.0=straight, 0.5=heavy swing). Auto-detected when 0.0."""
+    """Swing midpoint as a fraction of the beat (0.0=straight, 0.67=2:1 swing)."""
     time_signature: str = "auto"
     """Time signature: '4/4', '3/4', or 'auto' for detection."""
     grid_resolution: str = "16th"

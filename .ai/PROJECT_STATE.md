@@ -15,3 +15,11 @@ The source recording is mixed and Demucs `other` is not an isolated saxophone. T
 ## Next actions and blockers
 
 Evaluate actual solo sections against a time-aligned, authorized note-level reference. Determine saxophone part and chord changes and validate tempo, downbeats, pitch and rhythm by ear. Improve sax isolation and melody tracking before claiming accuracy. Integrate the explicit tempo/beat map into the main pipeline after validating it. Existing unrelated uncommitted working-tree changes predate this work and are not included in the branch commit.
+
+## Sonny Stitt benchmark update
+
+Matched WJazzD solos to Elora take 2, Teapot take 2 and Blue Mode take 1 using note-pitch energy and approximate alignment; cut 20-second local excerpts. Raw note F1 at 50 ms is 0.694/0.705/0.807, versus 0.421/0.330/0.453 under the old swing quantizer. The revised default straight grid yields 0.583/0.528/0.690 on saved raw MIDI. Alignment was fitted on overlapping material, so results are exploratory, not held out. `docs/stitt-benchmark.md` records offsets, methodology, limitations, and sources. Recordings and scores remain local and ignored.
+
+Fixed the evaluator's MIDI-to-Hz conversion, pitch-accuracy calculation and swapped onset metrics; added a WJazzD benchmark CLI. Default quantization no longer automatically applies an unreliable swing estimate; explicitly requested swing now warps sixteenth positions correctly. The reading-copy exporter accepts an explicit downbeat and a 32nd-note grid; generated three provisional PDF/MusicXML scores locally using annotation-derived tempo and downbeat. These scores still have false positives, approximated rhythms, and no chords. The main pipeline MusicXML timing bug remains unresolved. The pre-existing uncommitted project work is not included in these commits and was used for local inference; test a clean checkout separately.
+
+Verification for this update: the complete local working-tree suite passed 44 tests (four dependency deprecation warnings). The staged clean checkout passed 35 tests, including all 11 new/updated benchmark, scoring, quantization and reading-copy tests. Full audio inference was performed with the pre-existing local fixes, not a clean checkout.

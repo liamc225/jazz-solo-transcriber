@@ -95,7 +95,7 @@ All pipeline parameters are configurable via `jazz_solo.config`:
 | Transcriber | `model`               | `basic-pitch` | Backend: basic-pitch or mt3             |
 | Transcriber | `onset_threshold`     | `0.5`       | Onset sensitivity (lower = more notes)  |
 | Quantizer   | `grid_resolution`     | `16th`      | Quantization grid                       |
-| Quantizer   | `swing_ratio`         | `0.0`       | 0=auto, 0.33=straight, 0.67=heavy swing |
+| Quantizer   | `swing_ratio`         | `0.0`       | 0=straight, 0.67=2:1 swing |
 
 ## Project Structure
 

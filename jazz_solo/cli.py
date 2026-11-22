@@ -55,7 +55,7 @@ def cli(verbose: int, log_file: Path | None) -> None:
 @click.option("--frame-threshold", default=0.3, type=float, help="Frame activation threshold")
 @click.option("--min-note-length", default=0.058, type=float, help="Minimum note length (sec)")
 @click.option("--grid", default="16th", help="Quantization grid resolution")
-@click.option("--swing", default=0.0, type=float, help="Swing ratio (0=auto)")
+@click.option("--swing", default=0.0, type=float, help="Swing midpoint ratio (0=straight, 0.67=2:1)")
 @click.option("--bpm", default=(40.0, 400.0), nargs=2, type=float,
               help="Min and max BPM for beat tracking")
 def transcribe(

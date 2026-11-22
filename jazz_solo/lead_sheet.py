@@ -16,8 +16,9 @@ from jazz_solo.utils.midi import load_midi
 
 
 def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
-                     title: str = "Unverified transcription"):
-    """Convert seconds to beats and create one provisional 16th-note voice.
+                     title: str = "Unverified transcription",
+                     downbeat_origin: float | None = None, subdivisions: int = 4):
+    """Convert seconds to beats and create one provisional monophonic voice.
 
     beat_origin identifies a quarter-note pulse, not necessarily a downbeat.
     Simultaneous candidates are resolved by velocity; overlaps are clipped.
@@ -25,15 +26,23 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
     """
     if not math.isfinite(tempo) or tempo <= 0 or not math.isfinite(beat_origin):
         raise ValueError("Tempo must be positive and beat origin must be finite")
+    if subdivisions not in (4, 8):
+        raise ValueError("subdivisions must be 4 or 8")
     seconds_per_beat = 60.0 / tempo
     # Extend the pulse backwards to include the start of the recording.
-    origin = beat_origin - math.ceil(beat_origin / seconds_per_beat) * seconds_per_beat
+    if downbeat_origin is not None:
+        if not math.isfinite(downbeat_origin):
+            raise ValueError("Downbeat origin must be finite")
+        bar_duration = 4 * seconds_per_beat
+        origin = downbeat_origin - math.ceil(downbeat_origin / bar_duration) * bar_duration
+    else:
+        origin = beat_origin - math.ceil(beat_origin / seconds_per_beat) * seconds_per_beat
     candidates = {}
     for start, end, pitch, velocity in notes:
         if end <= start or start < 0:
             continue
-        start_tick = max(0, round((start - origin) / seconds_per_beat * 4))
-        end_tick = max(start_tick + 1, round((end - origin) / seconds_per_beat * 4))
+        start_tick = max(0, round((start - origin) / seconds_per_beat * subdivisions))
+        end_tick = max(start_tick + 1, round((end - origin) / seconds_per_beat * subdivisions))
         candidate = (velocity, end_tick, pitch)
         if start_tick not in candidates or candidate > candidates[start_tick]:
             candidates[start_tick] = candidate
@@ -47,9 +56,9 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
         velocity, end_tick, pitch = candidates[start_tick]
         if index + 1 < len(ticks):
             end_tick = min(end_tick, ticks[index + 1])
-        note = music21.note.Note(int(pitch), quarterLength=(end_tick - start_tick) / 4)
+        note = music21.note.Note(int(pitch), quarterLength=(end_tick - start_tick) / subdivisions)
         note.volume.velocity = int(max(0, min(127, velocity)))
-        part.insert(start_tick / 4, note)
+        part.insert(start_tick / subdivisions, note)
     score = music21.stream.Score()
     score.metadata = music21.metadata.Metadata(title=title)
     part.makeRests(fillGaps=True, inPlace=True)
@@ -64,8 +73,12 @@ def main():
     parser.add_argument('--tempo', required=True, type=float)
     parser.add_argument('--beat-origin', type=float, default=0.0)
     parser.add_argument('--title', default='Unverified transcription')
+    parser.add_argument('--downbeat-origin', type=float, default=None,
+                        help='time in seconds of a verified 4/4 downbeat')
+    parser.add_argument('--subdivisions', type=int, choices=(4, 8), default=4,
+                        help='ticks per beat (4=sixteenths, 8=thirty-seconds)')
     args = parser.parse_args()
-    score = build_lead_sheet(load_midi(args.midi), args.tempo, args.beat_origin, args.title)
+    score = build_lead_sheet(load_midi(args.midi), args.tempo, args.beat_origin, args.title, args.downbeat_origin, args.subdivisions)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     score.write('musicxml', fp=str(args.output))
 

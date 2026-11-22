@@ -66,12 +66,9 @@ class RhythmicQuantizer:
         """
         beat_map = self._build_beat_map(audio_path)
 
-        if self.config.swing_ratio == 0.0:
-            beat_map.swing_ratio = beat_map.swing_ratio or 0.0
-            if beat_map.swing_ratio < 0.01:
-                logger.info("[Stage C] No swing detected, using straight grid")
-        else:
-            beat_map.swing_ratio = self.config.swing_ratio
+        # Automatic swing estimation is not accurate enough to reposition
+        # notes by default. Apply swing only when explicitly requested.
+        beat_map.swing_ratio = self.config.swing_ratio
 
         logger.info(
             f"[Stage C] Tempo: {beat_map.tempo:.1f} BPM | "
@@ -298,12 +295,14 @@ class RhythmicQuantizer:
 
             for s in range(subdivs):
                 t = b1 + (s / subdivs) * beat_dur
-                # Apply swing offset for non-straight 8ths
-                if subdivs in (2, 4) and s % 2 == 1 and beat_map.swing_ratio > 0.01:
-                    swing_shift = beat_dur * (beat_map.swing_ratio - 0.5)
-                    # Clamp so swung notes don't cross the next beat
-                    swing_shift = max(-beat_dur * 0.4, min(beat_dur * 0.4, swing_shift))
-                    t += swing_shift
+                # Piecewise-linear warp: put the eighth-note midpoint at
+                # the requested ratio while preserving the subdivision order.
+                if subdivs in (2, 4) and beat_map.swing_ratio > 0.01:
+                    ratio = max(0.1, min(0.9, beat_map.swing_ratio))
+                    phase = s / subdivs
+                    warped = (2 * phase * ratio if phase <= 0.5 else
+                              ratio + 2 * (phase - 0.5) * (1 - ratio))
+                    t = b1 + warped * beat_dur
                 grid_parts.append(t)
 
         grid_parts.append(beat_map.beats[-1])

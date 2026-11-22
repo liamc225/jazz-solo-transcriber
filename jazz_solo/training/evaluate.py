@@ -3,9 +3,8 @@
 Uses the ``mir_eval`` library to compute standard MIR metrics:
 
 - **Onset F1** — does the model find notes at the right time?
-- **Pitch accuracy** — are the correct pitches detected?
-- **Note F1** — combined onset + pitch score
-- **Duration accuracy** — how well do note lengths match?
+- **Pitch accuracy** — pitch-correct onset matches / onset matches
+- **Note F1** — combined onset + pitch score (without offset scoring)
 """
 
 import json
@@ -53,7 +52,7 @@ class TranscriptionEvaluator:
         dict
             Metrics: onset_f1, onset_precision, onset_recall,
             note_f1, note_precision, note_recall,
-            pitch_accuracy, duration_accuracy.
+            pitch_accuracy (among onset matches).
         """
         import mir_eval
 
@@ -72,43 +71,33 @@ class TranscriptionEvaluator:
                 "note_precision": 0.0,
                 "note_recall": 0.0,
                 "pitch_accuracy": 0.0,
-                "duration_accuracy": 0.0,
                 "estimated_count": len(estimated),
                 "reference_count": len(reference),
             }
 
-        # ── Onset metrics ───────────────────────────────────────
-        onset_ref = ref_intervals[:, 0]
-        onset_est = est_intervals[:, 0]
-
-        try:
-            onset_p, onset_r, onset_f = mir_eval.onset.f_measure(
-                onset_ref, onset_est,
-                window=self.onset_tolerance,
-            )
-        except Exception:
-            onset_p = onset_r = onset_f = 0.0
-
-        # ── Note metrics (onset + pitch together) ───────────────
-        try:
-            note_p, note_r, note_f, _ = mir_eval.transcription.precision_recall_f1_overlap(
-                ref_intervals, ref_pitches,
-                est_intervals, est_pitches,
-                onset_tolerance=self.onset_tolerance,
-                pitch_tolerance=50.0,  # semitones — basically any pitch matches
-                offset_ratio=None,
-            )
-        except Exception:
-            note_p = note_r = note_f = 0.0
-
-        # ── Pitch accuracy ───────────────────────────────────────
-        try:
-            pitch_accuracy = mir_eval.transcription.pitch_accuracy(
-                ref_intervals, ref_pitches,
-                est_intervals, est_pitches,
-            )
-        except Exception:
-            pitch_accuracy = 0.0
+        # mir_eval expects pitches in Hz, not MIDI note numbers. Its pitch
+        # tolerance is cents; 50 cents is half a semitone.
+        ref_hz = 440.0 * np.exp2((ref_pitches - 69.0) / 12.0)
+        est_hz = 440.0 * np.exp2((est_pitches - 69.0) / 12.0)
+        onset_f, onset_p, onset_r = mir_eval.onset.f_measure(
+            ref_intervals[:, 0], est_intervals[:, 0],
+            window=self.onset_tolerance,
+        )
+        note_p, note_r, note_f, _ = mir_eval.transcription.precision_recall_f1_overlap(
+            ref_intervals, ref_hz, est_intervals, est_hz,
+            onset_tolerance=self.onset_tolerance,
+            pitch_tolerance=50.0,
+            offset_ratio=None,
+        )
+        onset_matches = mir_eval.transcription.match_note_onsets(
+            ref_intervals, est_intervals, onset_tolerance=self.onset_tolerance,
+        )
+        pitch_matches = mir_eval.transcription.match_notes(
+            ref_intervals, ref_hz, est_intervals, est_hz,
+            onset_tolerance=self.onset_tolerance, pitch_tolerance=50.0,
+            offset_ratio=None,
+        )
+        pitch_accuracy = len(pitch_matches) / len(onset_matches) if onset_matches else 0.0
 
         return {
             "onset_f1": float(onset_f),
