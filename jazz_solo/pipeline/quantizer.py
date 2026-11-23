@@ -45,6 +45,7 @@ class RhythmicQuantizer:
 
     def __init__(self, config: Optional[QuantizerConfig] = None):
         self.config = config or QuantizerConfig()
+        self.last_beat_map: Optional[BeatMap] = None
 
     def align(self, notes: List[NoteEvent], audio_path: str | Path) -> List[NoteEvent]:
         """Full metrical alignment pipeline.
@@ -64,7 +65,9 @@ class RhythmicQuantizer:
         list[NoteEvent]
             Quantized notes with metrically-aligned timings.
         """
+        self.last_beat_map = None
         beat_map = self._build_beat_map(audio_path)
+        self.last_beat_map = beat_map
 
         # Automatic swing estimation is not accurate enough to reposition
         # notes by default. Apply swing only when explicitly requested.

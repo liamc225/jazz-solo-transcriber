@@ -102,6 +102,23 @@ class JazzSoloPipeline:
         except Exception as e:
             logger.warning(f"MusicXML export failed (non-fatal): {e}")
 
+        # A separate monophonic reading copy uses seconds-to-beats conversion.
+        # Retain the raw and legacy outputs for comparison and editing.
+        beat_map = self.quantizer.last_beat_map
+        if beat_map is not None and beat_map.tempo > 0:
+            try:
+                from jazz_solo.lead_sheet import build_lead_sheet
+
+                beat_origin = float(beat_map.beats[0]) if len(beat_map.beats) else 0.0
+                reading = build_lead_sheet(
+                    notes, tempo=beat_map.tempo, beat_origin=beat_origin,
+                    title=f"{input_path.stem} - unverified reading",
+                    subdivisions=8,
+                )
+                reading.write("musicxml", fp=str(output_dir / "04_reading_copy.musicxml"))
+            except Exception as e:
+                logger.warning(f"Reading-copy export failed (non-fatal): {e}")
+
         if self.config.verbose:
             self._log_summary(input_path, output_dir, notes, quantized_notes)
 

@@ -15,3 +15,12 @@ def test_swing_warps_eighth_midpoint_without_reordering_grid():
     q = RhythmicQuantizer(QuantizerConfig(grid_resolution='16th'))
     b = BeatMap(np.array([0., .5, 1.]), np.array([0.]), 120., 2/3, '4/4')
     assert q._build_grid(b)[:5] == pytest.approx([0, 1/6, 1/3, 5/12, .5])
+
+
+def test_align_exposes_beat_map_for_reading_copy(monkeypatch):
+    q = RhythmicQuantizer(QuantizerConfig(grid_resolution='16th'))
+    beats = BeatMap(np.array([0., .5, 1.]), np.array([0.]), 120., 0., '4/4')
+    monkeypatch.setattr(q, '_build_beat_map', lambda _: beats)
+    q.align([(0., .5, 60, 100)], 'unused')
+    assert q.last_beat_map is beats
+    assert q.last_beat_map.tempo == 120.

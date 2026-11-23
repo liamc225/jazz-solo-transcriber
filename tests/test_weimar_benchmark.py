@@ -12,3 +12,12 @@ def test_reference_excerpt_uses_alignment_and_excludes_boundaries(tmp_path):
     assert reference_excerpt(db, 1, 10, 10, 3, .25) == [(1.0, 1.3, 62, 100)]
     with pytest.raises(ValueError):
         reference_excerpt(db, 99, 10, 10, 3)
+
+
+def test_reading_events_merge_ties_and_ignore_chord_symbols():
+    from jazz_solo.training.benchmark_weimar import reading_events
+    from jazz_solo.lead_sheet import build_lead_sheet
+    score = build_lead_sheet([(1.5, 2.5, 60, 100)], 120, chords=[(0, 'F7')])
+    events = reading_events(score, tempo=120, origin=0)
+    assert len(events) == 1
+    assert events[0][:3] == pytest.approx((1.5, 2.5, 60))

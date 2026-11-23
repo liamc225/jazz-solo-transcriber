@@ -6,7 +6,7 @@ Added `python -m jazz_solo.lead_sheet` as a separate, experimental reading-copy 
 
 ## Current behavior and decisions
 
-The source recording is mixed and Demucs `other` is not an isolated saxophone. This exporter is an engraving heuristic, not a validated transcription model: louder accompaniment can win, and onset grouping can discard notes. 4/4, pulse, tempo, downbeat and 16th-grid choices must be checked; chord symbols and sax transposition are not inferred. The default transcription pipeline remains unchanged, including its pre-existing MusicXML timing issue. The exporter deliberately requires explicit tempo rather than implying automatic beat tracking is reliable.
+The source recording is mixed and Demucs `other` is not an isolated saxophone. This exporter is an engraving heuristic, not a validated transcription model: louder accompaniment can win, and onset grouping can discard notes. 4/4, pulse, tempo, downbeat and 16th-grid choices must be checked; chord symbols and sax transposition are not inferred. The main pipeline now also emits a separate tempo-aware reading copy using its estimated beat map; the legacy 03 MusicXML output still has a seconds-to-beats timing issue. The standalone exporter accepts explicit tempo and optional reference harmony.
 
 ## Tests
 
@@ -23,3 +23,16 @@ Matched WJazzD solos to Elora take 2, Teapot take 2 and Blue Mode take 1 using n
 Fixed the evaluator's MIDI-to-Hz conversion, pitch-accuracy calculation and swapped onset metrics; added a WJazzD benchmark CLI. Default quantization no longer automatically applies an unreliable swing estimate; explicitly requested swing now warps sixteenth positions correctly. The reading-copy exporter accepts an explicit downbeat and a 32nd-note grid; generated three provisional PDF/MusicXML scores locally using annotation-derived tempo and downbeat. These scores still have false positives, approximated rhythms, and no chords. The main pipeline MusicXML timing bug remains unresolved. The pre-existing uncommitted project work is not included in these commits and was used for local inference; test a clean checkout separately.
 
 Verification for this update: the complete local working-tree suite passed 44 tests (four dependency deprecation warnings). The staged clean checkout passed 35 tests, including all 11 new/updated benchmark, scoring, quantization and reading-copy tests. Full audio inference was performed with the pre-existing local fixes, not a clean checkout.
+
+## Reference-style reading copies
+
+Added opt-in concert key, explicitly supplied timed chord symbols, and optional concert MIDI pitch-range filtering to the reading-copy exporter. Added a Weimar harmony extraction utility that validates and converts common chord spellings; the recording take and alignment remain the caller's responsibility. Regenerated the three local Stitt PDF/MusicXML drafts with annotation-derived key/chords and an explicitly chosen 48–84 pitch range. The harmony is reference-assisted, not detected by the audio model, and chord placement uses approximate constant-tempo beat mapping. The chosen range was evaluated on the same three excerpts and is not a validated universal saxophone range.
+
+Fixed the reading-copy benchmark to merge tied notes and exclude chord symbols. Corrected the earlier reading-copy F1 figures in `docs/stitt-benchmark.md`; newer drafts score 0.740/0.736/0.735 for Elora/Teapot/Blue Mode at 50 ms onset tolerance, using reference tempo/downbeat and same-data alignment. They are preliminary and do not assess note offsets, swing playback, phrasing or chord accuracy. Main pipeline MusicXML timing remains unresolved; these are reading-copy outputs, not polished scores or a retrained model.
+
+
+## Automatic reading-copy output
+
+The full pipeline now emits `04_reading_copy.musicxml` from raw note detections and its estimated beat map. This is a provisional one-voice reading copy: detected tempo/beat origin may be wrong, its downbeats are not verified, and it includes no inferred key or chords. The existing raw MIDI, quantized MIDI and legacy 03 MusicXML remain available. A full pipeline run on the local Elora excerpt successfully generated the new output. Full local suite: 54 passed (four dependency deprecation warnings); full inference still uses the pre-existing uncommitted local dependency and Demucs fixes.
+
+The staged clean checkout for the reference-style and pipeline integration update passed all 45 tests. The local working tree passed 54 tests with four dependency warnings.

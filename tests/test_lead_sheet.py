@@ -35,3 +35,48 @@ def test_thirty_second_note_grid_preserves_short_notes():
     score = build_lead_sheet([(0, .125, 60, 100)], tempo=60, subdivisions=8)
     note = list(score.parts[0].recurse().notes)[0]
     assert float(note.quarterLength) == pytest.approx(.125)
+
+
+def test_explicit_key_and_chord_symbols_survive_musicxml(tmp_path):
+    import music21
+    score = build_lead_sheet(
+        [(0, .5, 70, 100), (.5, 1, 72, 100)], 120,
+        key_signature='B-', chords=[(0.0, 'Cm7'), (.5, 'F7')],
+    )
+    path = tmp_path / 'score.musicxml'
+    score.write('musicxml', fp=str(path))
+    parsed = music21.converter.parse(path)
+    assert parsed.recurse().getElementsByClass(music21.key.KeySignature)[0].sharps == -2
+    symbols = list(parsed.recurse().getElementsByClass(music21.harmony.ChordSymbol))
+    assert [s.figure for s in symbols] == ['Cm7', 'F7']
+
+
+def test_harmony_is_not_guessed():
+    import music21
+    score = build_lead_sheet([(0, .5, 60, 100)], 120)
+    assert not list(score.recurse().getElementsByClass(music21.harmony.ChordSymbol))
+
+
+def test_optional_pitch_range_filters_only_when_requested():
+    notes = [(0, .5, 42, 100), (.5, 1, 60, 100), (1, 1.5, 87, 100)]
+    part = build_lead_sheet(notes, 120, pitch_range=(48, 84)).parts[0]
+    assert [n.pitch.midi for n in part.recurse().notes] == [60]
+    assert len(list(build_lead_sheet(notes, 120).parts[0].recurse().notes)) == 3
+    with pytest.raises(ValueError):
+        build_lead_sheet(notes, 120, pitch_range=(84, 48))
+
+
+def test_flat_chord_root_is_not_mistaken_for_natural():
+    import music21
+    score = build_lead_sheet([(0, .5, 70, 100)], 120, chords=[(0, 'Bb7')])
+    chord = list(score.recurse().getElementsByClass(music21.harmony.ChordSymbol))[0]
+    assert chord.root().pitchClass == 10
+
+
+def test_chords_landing_on_same_beat_do_not_overlap():
+    import music21
+    score = build_lead_sheet([(0, .5, 65, 100)], 120,
+                             chords=[(-.01, 'F7'), (.01, 'C7')])
+    chords = list(score.recurse().getElementsByClass(music21.harmony.ChordSymbol))
+    assert len(chords) == 1
+    assert chords[0].figure == 'C7'

@@ -39,6 +39,25 @@ def reference_excerpt(database: Path, melid: int, reference_zero: float,
     return result
 
 
+def reading_events(score, tempo: float, origin: float):
+    """Map reading-copy notation to clip seconds; merge ties and ignore chords.
+
+    This assumes a constant tempo and straight playback. It evaluates the
+    notation approximation, not the raw detector output.
+    """
+    import music21
+
+    if tempo <= 0:
+        raise ValueError('tempo must be positive')
+    part = score.parts[0].stripTies(inPlace=False)
+    events = []
+    for note in part.recurse().getElementsByClass(music21.note.Note):
+        start = float(note.getOffsetInHierarchy(part)) * 60 / tempo + origin
+        end = start + float(note.quarterLength) * 60 / tempo
+        events.append((start, end, note.pitch.midi, 100))
+    return sorted(events)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('database', type=Path)
@@ -49,12 +68,22 @@ def main():
     p.add_argument('--duration', type=float, required=True)
     p.add_argument('--margin', type=float, default=0.25)
     p.add_argument('--onset-tolerance', type=float, default=0.05)
+    p.add_argument('--score-tempo', type=float, help='required for MusicXML')
+    p.add_argument('--score-origin', type=float, help='required for MusicXML')
     args = p.parse_args()
     reference = reference_excerpt(args.database, args.melid, args.reference_zero,
                                   args.crop_start, args.duration, args.margin)
     if not reference:
         raise ValueError('No reference notes in selected excerpt')
-    estimate = [n for n in load_midi(args.midi)
+    if args.midi.suffix.lower() in ('.musicxml', '.xml'):
+        if args.score_tempo is None or args.score_origin is None:
+            p.error('MusicXML requires --score-tempo and --score-origin')
+        import music21
+        candidates = reading_events(music21.converter.parse(args.midi),
+                                    args.score_tempo, args.score_origin)
+    else:
+        candidates = load_midi(args.midi)
+    estimate = [n for n in candidates
                 if args.margin <= n[0] < args.duration - args.margin]
     result = TranscriptionEvaluator(args.onset_tolerance).evaluate(estimate, reference)
     print(json.dumps(result, indent=2, sort_keys=True))
