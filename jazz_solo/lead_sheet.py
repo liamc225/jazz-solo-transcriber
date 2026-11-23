@@ -22,7 +22,8 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
                      downbeat_origin: float | None = None, subdivisions: int = 4,
                      key_signature: str | None = None, chords=None,
                      pitch_range: tuple[int, int] | None = None,
-                     rhythm: str = "precise", swing_ratio: float = 0.6):
+                     rhythm: str = "precise", swing_ratio: float = 0.6,
+                     time_signature: str = "4/4", guitar_octave: bool = False):
     """Convert seconds to beats and create one provisional monophonic voice.
 
     beat_origin identifies a quarter-note pulse, not necessarily a downbeat.
@@ -39,12 +40,13 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
         raise ValueError("subdivisions must be 4 or 8")
     if pitch_range is not None and not (0 <= pitch_range[0] <= pitch_range[1] <= 127):
         raise ValueError("Pitch range must be ascending MIDI values from 0 to 127")
+    meter = music21.meter.TimeSignature(time_signature)
     seconds_per_beat = 60.0 / tempo
     # Extend the pulse backwards to include the start of the recording.
     if downbeat_origin is not None:
         if not math.isfinite(downbeat_origin):
             raise ValueError("Downbeat origin must be finite")
-        bar_duration = 4 * seconds_per_beat
+        bar_duration = float(meter.barDuration.quarterLength) * seconds_per_beat
         origin = downbeat_origin - math.ceil(downbeat_origin / bar_duration) * bar_duration
     else:
         origin = beat_origin - math.ceil(beat_origin / seconds_per_beat) * seconds_per_beat
@@ -90,10 +92,10 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
 
     ticks = sorted(candidates)
     part = music21.stream.Part()
-    part.insert(0, music21.meter.TimeSignature('4/4'))
+    part.insert(0, meter)
     part.insert(0, music21.tempo.MetronomeMark(
         text="Swing" if rhythm == "jazz" else None, number=tempo))
-    part.insert(0, music21.clef.TrebleClef())
+    part.insert(0, music21.clef.Treble8vbClef() if guitar_octave else music21.clef.TrebleClef())
     if key_signature:
         part.insert(0, music21.key.Key(key_signature))
     # Chords are supplied by the caller, never inferred from the recording.
@@ -140,6 +142,9 @@ def main():
     parser.add_argument('--chords-json', type=Path, help='JSON list of {time, symbol} in clip seconds')
     parser.add_argument('--pitch-range', type=int, nargs=2, metavar=('LOW', 'HIGH'),
                         help='optional inclusive concert MIDI pitch range')
+    parser.add_argument('--meter', default='4/4', help='time signature, e.g. 6/4')
+    parser.add_argument('--guitar-octave', action='store_true',
+                        help='write guitar an octave higher with an octave-lower clef')
     parser.add_argument('--rhythm', choices=('precise', 'jazz'), default='precise')
     parser.add_argument('--swing-ratio', type=float, default=.6,
                         help='performed offbeat fraction for jazz notation')
@@ -149,7 +154,8 @@ def main():
         chords = [(float(c['time']), c['symbol']) for c in json.loads(args.chords_json.read_text())]
     score = build_lead_sheet(load_midi(args.midi), args.tempo, args.beat_origin,
                              args.title, args.downbeat_origin, args.subdivisions,
-                             args.key, chords, args.pitch_range, args.rhythm, args.swing_ratio)
+                             args.key, chords, args.pitch_range, args.rhythm, args.swing_ratio, args.meter,
+                             args.guitar_octave)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     score.write('musicxml', fp=str(args.output))
 

@@ -97,3 +97,26 @@ def test_jazz_notation_keeps_fast_sixteenth_notes():
     notes = list(score.parts[0].recurse().getElementsByClass('Note'))
     assert len(notes) == 2
     assert float(notes[1].getOffsetInHierarchy(score.parts[0])) == pytest.approx(.25)
+
+
+def test_specified_six_four_meter_controls_bars_and_export(tmp_path):
+    import music21
+    score = build_lead_sheet([(0, .5, 60, 100), (2.5, 3, 62, 100)],
+                             tempo=120, time_signature='6/4')
+    path = tmp_path / 'six_four.musicxml'
+    score.write('musicxml', fp=str(path))
+    result = music21.converter.parse(path)
+    assert result.recurse().getElementsByClass(music21.meter.TimeSignature)[0].ratioString == '6/4'
+    assert len(result.parts[0].getElementsByClass(music21.stream.Measure)) == 1
+
+
+def test_guitar_reading_uses_octave_clef_and_preserves_sounding_pitch(tmp_path):
+    import music21
+    score = build_lead_sheet([(0, .5, 52, 100)], tempo=120, guitar_octave=True)
+    path = tmp_path / 'guitar.musicxml'
+    score.write('musicxml', fp=str(path))
+    xml = path.read_text()
+    assert '<clef-octave-change>-1</clef-octave-change>' in xml
+    parsed = music21.converter.parse(path)
+    notes = list(parsed.recurse().getElementsByClass(music21.note.Note))
+    assert notes[0].pitch.midi == 52

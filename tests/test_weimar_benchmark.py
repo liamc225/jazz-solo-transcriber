@@ -30,3 +30,10 @@ def test_swing_reading_events_convert_eighths_to_performed_time():
                              tempo=120, rhythm='jazz', swing_ratio=.6)
     events = reading_events(score, tempo=120, origin=0, swing_ratio=.6)
     assert events[1][0] == pytest.approx(.30)
+
+
+def test_reading_events_respect_octave_transposing_guitar_clef():
+    from jazz_solo.training.benchmark_weimar import reading_events
+    from jazz_solo.lead_sheet import build_lead_sheet
+    score = build_lead_sheet([(0, .5, 52, 100)], 120, guitar_octave=True)
+    assert reading_events(score, tempo=120, origin=0)[0][2] == 52
