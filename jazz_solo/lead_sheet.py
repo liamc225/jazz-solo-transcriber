@@ -23,7 +23,8 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
                      key_signature: str | None = None, chords=None,
                      pitch_range: tuple[int, int] | None = None,
                      rhythm: str = "precise", swing_ratio: float = 0.6,
-                     time_signature: str = "4/4", guitar_octave: bool = False):
+                     time_signature: str = "4/4", guitar_octave: bool = False,
+                     bars_per_system: int | None = None, min_velocity: int = 0):
     """Convert seconds to beats and create one provisional monophonic voice.
 
     beat_origin identifies a quarter-note pulse, not necessarily a downbeat.
@@ -40,6 +41,10 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
         raise ValueError("subdivisions must be 4 or 8")
     if pitch_range is not None and not (0 <= pitch_range[0] <= pitch_range[1] <= 127):
         raise ValueError("Pitch range must be ascending MIDI values from 0 to 127")
+    if not 0 <= min_velocity <= 127:
+        raise ValueError("min_velocity must be between 0 and 127")
+    if bars_per_system is not None and bars_per_system < 1:
+        raise ValueError("bars_per_system must be positive")
     meter = music21.meter.TimeSignature(time_signature)
     seconds_per_beat = 60.0 / tempo
     # Extend the pulse backwards to include the start of the recording.
@@ -70,6 +75,8 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
         if end <= start or start < 0:
             continue
         if pitch_range is not None and not (pitch_range[0] <= pitch <= pitch_range[1]):
+            continue
+        if velocity < min_velocity:
             continue
         beat = max(0.0, notation_beat(start))
         if rhythm == "jazz":
@@ -123,7 +130,12 @@ def build_lead_sheet(notes, tempo: float, beat_origin: float = 0.0,
     score = music21.stream.Score()
     score.metadata = music21.metadata.Metadata(title=title)
     part.makeRests(fillGaps=True, inPlace=True)
-    score.insert(0, part.makeMeasures().makeTies())
+    measured = part.makeMeasures().makeTies()
+    if bars_per_system:
+        measures = list(measured.getElementsByClass(music21.stream.Measure))
+        for measure in measures[bars_per_system::bars_per_system]:
+            measure.insert(0, music21.layout.SystemLayout(isNew=True))
+    score.insert(0, measured)
     return score
 
 
@@ -143,6 +155,10 @@ def main():
     parser.add_argument('--pitch-range', type=int, nargs=2, metavar=('LOW', 'HIGH'),
                         help='optional inclusive concert MIDI pitch range')
     parser.add_argument('--meter', default='4/4', help='time signature, e.g. 6/4')
+    parser.add_argument('--min-velocity', type=int, default=0,
+                        help='optional cutoff on detected MIDI velocity (0-127)')
+    parser.add_argument('--bars-per-system', type=int, default=None,
+                        help='optional explicit system breaks')
     parser.add_argument('--guitar-octave', action='store_true',
                         help='write guitar an octave higher with an octave-lower clef')
     parser.add_argument('--rhythm', choices=('precise', 'jazz'), default='precise')
@@ -155,7 +171,7 @@ def main():
     score = build_lead_sheet(load_midi(args.midi), args.tempo, args.beat_origin,
                              args.title, args.downbeat_origin, args.subdivisions,
                              args.key, chords, args.pitch_range, args.rhythm, args.swing_ratio, args.meter,
-                             args.guitar_octave)
+                             args.guitar_octave, args.bars_per_system, args.min_velocity)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     score.write('musicxml', fp=str(args.output))
 

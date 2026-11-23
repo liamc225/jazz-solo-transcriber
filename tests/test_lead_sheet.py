@@ -120,3 +120,30 @@ def test_guitar_reading_uses_octave_clef_and_preserves_sounding_pitch(tmp_path):
     parsed = music21.converter.parse(path)
     notes = list(parsed.recurse().getElementsByClass(music21.note.Note))
     assert notes[0].pitch.midi == 52
+
+
+def test_system_breaks_every_four_bars_preserves_notes(tmp_path):
+    notes = [(float(i), float(i) + .5, 60 + i % 8, 90) for i in range(12)]
+    score = build_lead_sheet(notes, tempo=60, bars_per_system=2)
+    path = tmp_path / 'systems.musicxml'
+    score.write('musicxml', fp=str(path))
+    assert 'new-system="yes"' in path.read_text()
+    import music21
+    parsed = music21.converter.parse(path)
+    assert len(list(parsed.recurse().getElementsByClass(music21.note.Note))) == 12
+
+
+def test_optional_confidence_cutoff_does_not_modify_default():
+    notes = [(0., .5, 60, 40), (.5, 1., 62, 80)]
+    assert len(list(build_lead_sheet(notes, 120).parts[0].recurse().notes)) == 2
+    part = build_lead_sheet(notes, 120, min_velocity=60).parts[0]
+    assert [n.pitch.midi for n in part.recurse().notes] == [62]
+    with pytest.raises(ValueError):
+        build_lead_sheet(notes, 120, min_velocity=128)
+
+
+def test_guitar_range_prevents_louder_bass_from_replacing_melody():
+    notes = [(0.0, .15, 43, 65), (0.01, .15, 62, 53)]
+    part = build_lead_sheet(notes, tempo=200, rhythm='jazz', pitch_range=(50, 84),
+                            min_velocity=40).parts[0]
+    assert [n.pitch.midi for n in part.recurse().getElementsByClass('Note')] == [62]
