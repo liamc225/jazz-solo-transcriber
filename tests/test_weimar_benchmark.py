@@ -21,3 +21,12 @@ def test_reading_events_merge_ties_and_ignore_chord_symbols():
     events = reading_events(score, tempo=120, origin=0)
     assert len(events) == 1
     assert events[0][:3] == pytest.approx((1.5, 2.5, 60))
+
+
+def test_swing_reading_events_convert_eighths_to_performed_time():
+    from jazz_solo.training.benchmark_weimar import reading_events
+    from jazz_solo.lead_sheet import build_lead_sheet
+    score = build_lead_sheet([(0, .22, 60, 100), (.30, .46, 62, 100)],
+                             tempo=120, rhythm='jazz', swing_ratio=.6)
+    events = reading_events(score, tempo=120, origin=0, swing_ratio=.6)
+    assert events[1][0] == pytest.approx(.30)

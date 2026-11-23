@@ -116,6 +116,12 @@ class JazzSoloPipeline:
                     subdivisions=8,
                 )
                 reading.write("musicxml", fp=str(output_dir / "04_reading_copy.musicxml"))
+                swing_reading = build_lead_sheet(
+                    notes, tempo=beat_map.tempo, beat_origin=beat_origin,
+                    title=f"{input_path.stem} - swing reading (unverified)",
+                    rhythm="jazz",
+                )
+                swing_reading.write("musicxml", fp=str(output_dir / "05_swing_reading.musicxml"))
             except Exception as e:
                 logger.warning(f"Reading-copy export failed (non-fatal): {e}")
 

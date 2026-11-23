@@ -80,3 +80,20 @@ def test_chords_landing_on_same_beat_do_not_overlap():
     chords = list(score.recurse().getElementsByClass(music21.harmony.ChordSymbol))
     assert len(chords) == 1
     assert chords[0].figure == 'C7'
+
+
+def test_jazz_notation_writes_swung_eighths_as_even_eighths():
+    score = build_lead_sheet([(0, .22, 60, 100), (.30, .46, 62, 100)],
+                             tempo=120, rhythm='jazz', swing_ratio=.6)
+    part = score.parts[0]
+    notes = list(part.recurse().getElementsByClass('Note'))
+    assert [float(n.getOffsetInHierarchy(part)) for n in notes] == pytest.approx([0, .5])
+    assert [float(n.quarterLength) for n in notes] == pytest.approx([.5, .5])
+
+
+def test_jazz_notation_keeps_fast_sixteenth_notes():
+    score = build_lead_sheet([(0, .09, 60, 100), (.15, .23, 62, 100)],
+                             tempo=120, rhythm='jazz', swing_ratio=.6)
+    notes = list(score.parts[0].recurse().getElementsByClass('Note'))
+    assert len(notes) == 2
+    assert float(notes[1].getOffsetInHierarchy(score.parts[0])) == pytest.approx(.25)

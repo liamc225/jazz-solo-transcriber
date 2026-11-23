@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sqlite3
 from pathlib import Path
 
@@ -39,21 +40,29 @@ def reference_excerpt(database: Path, melid: int, reference_zero: float,
     return result
 
 
-def reading_events(score, tempo: float, origin: float):
+def reading_events(score, tempo: float, origin: float, swing_ratio: float = .5):
     """Map reading-copy notation to clip seconds; merge ties and ignore chords.
 
-    This assumes a constant tempo and straight playback. It evaluates the
+    This assumes a constant tempo and specified swing feel. It evaluates the
     notation approximation, not the raw detector output.
     """
     import music21
 
-    if tempo <= 0:
-        raise ValueError('tempo must be positive')
+    if tempo <= 0 or not .5 <= swing_ratio <= .75:
+        raise ValueError('tempo must be positive and swing ratio between .5 and .75')
     part = score.parts[0].stripTies(inPlace=False)
     events = []
+    def performed_seconds(beats):
+        whole = math.floor(beats)
+        phase = beats - whole
+        warped = (phase * 2 * swing_ratio if phase <= .5 else
+                  swing_ratio + (phase - .5) * 2 * (1 - swing_ratio))
+        return (whole + warped) * 60 / tempo + origin
+
     for note in part.recurse().getElementsByClass(music21.note.Note):
-        start = float(note.getOffsetInHierarchy(part)) * 60 / tempo + origin
-        end = start + float(note.quarterLength) * 60 / tempo
+        beat = float(note.getOffsetInHierarchy(part))
+        start = performed_seconds(beat)
+        end = performed_seconds(beat + float(note.quarterLength))
         events.append((start, end, note.pitch.midi, 100))
     return sorted(events)
 
@@ -70,6 +79,8 @@ def main():
     p.add_argument('--onset-tolerance', type=float, default=0.05)
     p.add_argument('--score-tempo', type=float, help='required for MusicXML')
     p.add_argument('--score-origin', type=float, help='required for MusicXML')
+    p.add_argument('--score-swing-ratio', type=float, default=.5,
+                   help='playback offbeat fraction; .5 means straight')
     args = p.parse_args()
     reference = reference_excerpt(args.database, args.melid, args.reference_zero,
                                   args.crop_start, args.duration, args.margin)
@@ -80,7 +91,8 @@ def main():
             p.error('MusicXML requires --score-tempo and --score-origin')
         import music21
         candidates = reading_events(music21.converter.parse(args.midi),
-                                    args.score_tempo, args.score_origin)
+                                    args.score_tempo, args.score_origin,
+                                    args.score_swing_ratio)
     else:
         candidates = load_midi(args.midi)
     estimate = [n for n in candidates

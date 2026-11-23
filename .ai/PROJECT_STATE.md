@@ -36,3 +36,11 @@ Fixed the reading-copy benchmark to merge tied notes and exclude chord symbols. 
 The full pipeline now emits `04_reading_copy.musicxml` from raw note detections and its estimated beat map. This is a provisional one-voice reading copy: detected tempo/beat origin may be wrong, its downbeats are not verified, and it includes no inferred key or chords. The existing raw MIDI, quantized MIDI and legacy 03 MusicXML remain available. A full pipeline run on the local Elora excerpt successfully generated the new output. Full local suite: 54 passed (four dependency deprecation warnings); full inference still uses the pre-existing uncommitted local dependency and Demucs fixes.
 
 The staged clean checkout for the reference-style and pipeline integration update passed all 45 tests. The local working tree passed 54 tests with four dependency warnings.
+
+## Swing-notation revision
+
+Added optional `rhythm='jazz'` / `--rhythm jazz`, which treats a configurable long-short performed pair (default 0.6 offbeat) as written even eighths, prefers eighth-note positions, uses some sixteenths for faster events, and simplifies short articulation gaps. The main pipeline now writes `05_swing_reading.musicxml` in addition to the more detailed `04` copy; neither has inferred harmony and both remain unverified. The raw notes are unchanged. Verified the full local Elora run created 05; this run still depends on pre-existing uncommitted local fixes.
+
+Regenerated three local PDF drafts with reference-supplied key/chords, 48–84 pitch filter, and swing notation. Elora has 71 eighths and 23 sixteenths; Teapot has 51 eighths and 52 sixteenths; the Blue Mode draft uses a 121.4 BPM double-time notation and has 42 eighths and 27 sixteenths. The Blue Mode bar lines were redistributed as an editorial choice rather than verified original meter. When evaluated with 0.6 swing playback, note F1 is 0.651/0.506/0.497; the simpler output loses or merges notes and is not more accurate. The detailed 04 and raw MIDI remain the safer basis for correction. Benchmark evaluator now supports swing playback and merges ties. See `docs/stitt-benchmark.md` for comparison limits and further work.
+
+Verification for swing revision: local full suite passed 58 tests (four dependency warnings); staged clean checkout passed 49 tests. The swing draft PDFs were rendered and visually inspected locally.
